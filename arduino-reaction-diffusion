@@ -1,0 +1,100 @@
+#include "FastLED.h"
+
+// Matrix size
+#define NUM_ROWS 16
+#define NUM_COLS 16
+
+// LEDs pin
+#define DATA_PIN 3
+
+#define NUM_LEDS NUM_ROWS * NUM_COLS
+
+// Define the array of leds
+//CRGB leds[NUM_LEDS];
+CRGB *leds = malloc(768);
+
+//Define reaction-diffusion variables
+#define f 0.055
+#define k 0.062
+#define DA 1
+#define DB 0.5
+#define dt 1
+
+unsigned char A[NUM_LEDS];
+unsigned char B[NUM_LEDS];
+//unsigned char lapA[NUM_LEDS];
+//unsigned char lapB[NUM_LEDS];
+
+//float *A = malloc(1024);
+//float *B = malloc(1024);
+float *lapA = malloc(1024);
+float *lapB = malloc(1024);
+
+void setup() {
+    Serial.begin(9600);
+
+    //Serial.println(sizeof(leds[0]));
+    
+    for(int i=0; i< NUM_LEDS; i++){
+        leds[i] = CRGB(0,0,0);
+        FastLED.show();
+    }
+
+    //Initialize A, B Matrices
+    for(int i=0; i< NUM_LEDS; i++){
+        A[i] = 255;
+        //Serial.println(A[i]);
+        B[i] = 0;
+    }
+    B[100] = 0.5;
+
+    Serial.end();
+}
+
+void loop(){
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+
+    Serial.begin(9600);
+    Serial.println("test");
+    Serial.println(A[0]);
+
+    //Set leds from A and show led
+    for(int i=0; i< NUM_LEDS; i++){
+        leds[i] = CHSV(A[i],255,255);
+    }
+    FastLED.show();
+
+    Serial.println("test1");  
+
+    //find lapA, lapB
+    for(int i=0; i< NUM_LEDS; i++){
+        Serial.println(i);
+        
+        lapA[i] = -4*A[i];
+        if(i%16 != 16-1)    lapA[i] += A[i+1];
+        if(i%16 != 0)       lapA[i] += A[i-1];
+        if(i > 15)          lapA[i] += A[i-16];//numcol-1
+        if(i > 240)         lapA[i] += A[i-16];//num_led - 16
+
+        lapB[i] = -4*B[i];
+        if(i%16 != 16-1)    lapB[i] += B[i+1];
+        if(i%16 != 0)       lapB[i] += B[i-1];
+        if(i > 15)          lapB[i] += B[i-16];//numcol-1
+        if(i > 240)         lapB[i] += B[i-16];//num_led - 16
+        
+    }
+    Serial.println("test2");
+
+    //Update A and B
+    for(int i=0; i< NUM_LEDS; i++){
+        A[i] = A[i] + (DA*lapA[i] - A[i]*B[i]*B[i] + f*(1-A[i])) * dt;
+        B[i] = B[i] + (DB*lapB[i] + A[i]*B[i]*B[i] - (k+f)*B[i]) * dt;
+    }
+
+    Serial.println("test3");
+
+    delay(dt);
+
+    Serial.end();
+  
+}
