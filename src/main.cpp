@@ -1,10 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "mainwindow.h"
 
 #include <GL/freeglut.h>
 #include <GL/gl.h>
 
-int main(int argc, char **argv)
+#include <QApplication>
+
+int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE);
@@ -16,6 +17,11 @@ int main(int argc, char **argv)
     glutInitWindowPosition(screenWidth / 2, screenHeight / 2);
 
     glutCreateWindow("Soaking Raspberries - Reaction-diffusion");
+
+    QApplication a(argc, argv);
+    MainWindow w;
+    w.show();
+    a.exec();
+
     glutMainLoop();
-    return 0;
 }
