@@ -2,16 +2,17 @@
 
 ## Getting started
 
-Make sure to have [freeglut](http://freeglut.sourceforge.net/) installed.
+Make sure to have [freeglut](http://freeglut.sourceforge.net/) and Qt5 installed.
 
 To build the project:
 
 ```bash
-make build
+cmake .
+make
 ```
 
 To run the project:
 
 ```bash
-./program.out
+./src/reaction-diffusion
 ```
