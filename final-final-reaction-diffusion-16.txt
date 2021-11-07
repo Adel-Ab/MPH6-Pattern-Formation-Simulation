@@ -1,0 +1,136 @@
+#include "FastLED.h"
+
+// Matrix size
+#define NUM_ROWS 16
+#define NUM_COLS 16
+
+// LEDs pin
+#define DATA_PIN 3
+
+#define NUM_LEDS NUM_ROWS * NUM_COLS
+
+//Define reaction-diffusion variables
+#define f 0.05
+#define k 0.06
+#define DA 1
+#define DB 0.5
+//dt is 1
+
+unsigned char A[NUM_LEDS];
+unsigned char B[NUM_LEDS];
+
+void setup() {
+    Serial.begin(9600);
+
+    int run = 3;
+    if(run == 0){
+        for(unsigned char i=0; i< NUM_LEDS; i++){  
+            A[i] = 0;
+            B[i] = 0;
+
+            if(i==255)  break;
+        }    
+        A[NUM_LEDS/2 -8]=255;   
+    }else if(run == 1){
+        for(unsigned char i=0; i< NUM_LEDS; i++){  
+            A[i] = 255;
+            B[i] = 0;
+
+            if(i==255)  break;
+        }
+        B[NUM_LEDS/2 -8] = B[NUM_LEDS/2 -9]=255;
+        B[NUM_LEDS/2 +7] = B[NUM_LEDS/2 +8]=255;
+        //A[NUM_LEDS/2 -8] = A[NUM_LEDS/2 -9]=0;
+        //A[NUM_LEDS/2 +7] = A[NUM_LEDS/2 +8]=0;
+    }else if(run == 2){
+        for(unsigned char i=0; i< NUM_LEDS; i++){ 
+            if(i<NUM_LEDS/2){
+                A[i] = 255;
+                B[i] = 0;
+            }else{
+                A[i] = 0;
+                B[i] = 255;                
+            }
+            if(i==255)  break;
+        }
+    }else if(run == 3){
+        for(unsigned char i=0; i< NUM_LEDS; i++){ 
+
+            A[i] = 255;
+            B[i] = 0;
+
+            if(i==255)  break;
+        }
+        B[255] = 255;
+        B[0] = 255;
+    }
+
+}
+
+
+
+void loop(){
+
+    CRGB *leds = new CRGB [NUM_LEDS];
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+    //Set leds to show A
+    for(unsigned char i=0; i< NUM_LEDS; i++){
+        //leds[i] = CRGB(A[i],0,B[i]);
+        unsigned char sat = abs((float)A[i] - (float)B[i]);
+        unsigned char hew = 255 - ((float)A[i]/255.0 - (float)B[i]/255.0)*25.0;
+        leds[i] = CHSV(hew,255,sat);
+
+        if(i==255)  break;
+    }
+    FastLED.show();
+    delete leds;
+
+    //find lapA
+    //unsigned char *lap = new unsigned char [NUM_LEDS];
+    short *lap = new short [NUM_LEDS];
+    for(unsigned char i=0; i< NUM_LEDS; i++){   
+        lap[i] = -4*A[i];
+        if(i%NUM_ROWS != NUM_ROWS-1)    lap[i] += A[i+1];
+        if(i%NUM_ROWS != 0)       lap[i] += A[i-1];
+        if(i > NUM_ROWS-1)          lap[i] += A[i-NUM_ROWS];
+        if(i < NUM_LEDS-NUM_ROWS)         lap[i] += A[i+NUM_ROWS]; 
+        if(i==255)  break;  
+            
+    }
+
+    //Get new A
+    unsigned char *tempA = new unsigned char [NUM_LEDS];
+    for(unsigned char i=0; i< NUM_LEDS; i++){  
+        tempA[i] = A[i];    
+        if(A[i] + (DA*lap[i]/4 - A[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) + f*(1-A[i]/NUM_LEDS)*NUM_LEDS) > 255)   A[i] = 255;
+        else if(A[i] + (DA*lap[i]/4 - A[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) + f*(1-A[i]/NUM_LEDS)*NUM_LEDS) < 0)   A[i] = 0;
+        else  A[i] = A[i] + (DA*lap[i]/4 - A[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) + f*(1-A[i]/NUM_LEDS)*NUM_LEDS);
+
+        if(i==255)  break;
+    }
+
+    //find lapB
+    for(unsigned char i=0; i< NUM_LEDS; i++){       
+        lap[i] = -4*B[i];
+        if(i%NUM_ROWS != NUM_ROWS-1)    lap[i] += B[i+1];
+        if(i%NUM_ROWS != 0)       lap[i] += B[i-1];
+        if(i > NUM_ROWS-1)          lap[i] += B[i-NUM_ROWS];
+        if(i < NUM_LEDS-NUM_ROWS)         lap[i] += B[i+NUM_ROWS]; 
+
+        if(i==255)  break;  
+    }
+
+    //get new B
+    for(unsigned char i=0; i< NUM_LEDS; i++){
+        if(B[i] + (DB*lap[i]/4 + tempA[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) - (k+f)*B[i]) > 255)    B[i] = 255;
+        else if(B[i] + (DB*lap[i]/4 + tempA[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) - (k+f)*B[i]) < 0)   B[i] = 0;
+        else    B[i] = B[i] + (DB*lap[i]/4 + tempA[i]*(B[i]/NUM_LEDS)*(B[i]/NUM_LEDS) - (k+f)*B[i]);
+    
+        if(i==255)  break; 
+    }
+    delete tempA;
+    delete lap;
+
+    delay(200);
+  
+}
